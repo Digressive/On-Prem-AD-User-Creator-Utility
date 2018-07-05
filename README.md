@@ -114,7 +114,10 @@ The password for the user account.
 ```
 Connect to the SMTP server using SSL.
 
+### Example
+
 ```
 Create-Accounts-CSV.ps1 -Csv E:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2018 -Upn contoso.com -L E:\logs -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
 ```
+
 This will take information from the users.csv file and create the users in the Imported_Accounts OU. The users home drive will be mapped to W: and be located under \\filesrvr01\UserHomes. The users will be a member of the All_Users AD group, will expire 31/07/2018 and will have the UPN of contoso.com. The log will be output to E:\logs and e-mailed.

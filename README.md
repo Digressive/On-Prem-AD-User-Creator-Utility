@@ -3,7 +3,7 @@ PowerShell script to create Active Directory user accounts in bulk
 
 Bulk Create Active Directory Users can also be downloaded from:
 
-* [The Microsoft TechNet Gallery](https://gallery.technet.microsoft.com/scriptcenter/Create-AD-Account-from-CSV-4d185a0b?redir=0)
+* [The Microsoft TechNet Gallery](https://gallery.technet.microsoft.com/Create-AD-Account-from-CSV-09ee9d39?redir=0)
 * For full instructions and documentation, [visit my blog post](https://gal.vin/2017/09/13/powershell-create-ad-users-from-csv)
 
 -Mike

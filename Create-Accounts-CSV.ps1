@@ -5,7 +5,7 @@
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
-.AUTHOR Mike Galvin twitter.com/digressive
+.AUTHOR Mike Galvin twitter.com/mikegalvin_
 
 .COMPANYNAME
 

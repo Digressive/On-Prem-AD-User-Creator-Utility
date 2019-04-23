@@ -1,4 +1,5 @@
 # Bulk Create Active Directory Users
+
 PowerShell script to create Active Directory user accounts in bulk
 
 Bulk Create Active Directory Users can also be downloaded from:
@@ -8,7 +9,7 @@ Bulk Create Active Directory Users can also be downloaded from:
 
 -Mike
 
-Tweet me if you have questions: [@Digressive](https://twitter.com/digressive)
+Tweet me if you have questions: [@mikegalvin_](https://twitter.com/mikegalvin_)
 
 ## Features and Requirements
 

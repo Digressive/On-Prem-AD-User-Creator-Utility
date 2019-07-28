@@ -1,5 +1,4 @@
-﻿
-<#PSScriptInfo
+﻿<#PSScriptInfo
 
 .VERSION 1.5
 
@@ -36,9 +35,7 @@
     .DESCRIPTION
     Creates Active Directory user accounts from a CSV file.
 
-    This script will:
-
-    Create users based on information provided by a CSV file. All other options are added via command line switches.
+    This script will create users based on information provided by a CSV file. All other options are added via command line switches.
     
     The command line switches provide configuration for:
 
@@ -142,7 +139,6 @@ Param(
 ## If users list csv file exists then run the script
 If (Test-Path $UsersList)
 {
-
     ## If logging is configured, start log
     If ($LogPath)
     {
@@ -173,7 +169,7 @@ If (Test-Path $UsersList)
 
         $UserExist = Get-ADUser -Filter "SamAccountName -eq '$Sam'"
 
-        If ($UserExist -eq $null)
+        If ($null -eq $UserExist)
         {
             New-ADUser -Name $Sam -DisplayName "$DisplayName" -SamAccountName $Sam -UserPrincipalName $Upn -GivenName "$UserFirstName" -Surname "$UserLastName" -Description "$Description" -AccountPassword (ConvertTo-SecureString $Password -AsPlainText -Force) -Enabled $True -Path "$OrganisationalUnit" -ChangePasswordAtLogon $True –PasswordNeverExpires $False -AccountExpirationDate $AdExpire -Verbose
         
@@ -190,7 +186,7 @@ If (Test-Path $UsersList)
 
         Else
         {
-            Write-Host "User with SAM:$Sam already exists"
+            Write-Host "User with Sam Account Name:$Sam already exists"
         }
     }
 
@@ -235,9 +231,7 @@ If (Test-Path $UsersList)
 
 Else
 {
-    Write-Host ""
     Write-Host "There's no user list to work with."
-    Write-Host ""
 }
 
 ## End

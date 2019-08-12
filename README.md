@@ -33,13 +33,7 @@ When running the script via Schedule Tasks or the command prompt be sure to use 
 
 The first line of the CSV file should be the column names so the script (and you) know what each column is for.
 
-The structure of the CSV file is as follows:
-
-```
-Firstname,Lastname,SAM,Password
-Joe,Bloggs,jbloggs,P@ssw0rd1
-Jane,Bloggs,janeb,P@ssw0rd2
-```
+Please see the users-example.csv file for how to structure your own file.
 
 ### Generating A Password File
 
@@ -59,15 +53,15 @@ After running the commands, you will have a text file containing the encrypted p
 Here’s a list of all the command line switches and example configurations.
 
 ```
--Csv
+-csv
 ```
 The path and filename of the csv file containing the user information to create users from.
 ```
--Ou
+-ou
 ```
 The Organisational Unit to create the users in.
 ```
--Upn
+-upn
 ```
 The Universal Principal Name the users should be configured with.
 ```
@@ -118,7 +112,7 @@ Connect to the SMTP server using SSL.
 ### Example
 
 ```
-Create-Accounts-CSV.ps1 -Csv E:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2018 -Upn contoso.com -L E:\logs -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
+Create-Accounts-CSV.ps1 -Csv C:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2022 -Upn contoso.com -L C:\scripts\logs -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
 ```
 
-This will take information from the users.csv file and create the users in the Imported_Accounts OU. The users home drive will be mapped to W: and be located under \\filesrvr01\UserHomes. The users will be a member of the All_Users AD group, will expire 31/07/2018 and will have the UPN of contoso.com. The log will be output to E:\logs and e-mailed.
+This will take information from the users.csv file and create the users in the Imported_Accounts OU. The users home drive will be mapped to W: and be located under \\filesrvr01\UserHomes. The users will be a member of the All_Users AD group, will expire 31/07/2022 and will have the UPN of contoso.com. The log will be output to C:\scripts\logs and e-mailed.

@@ -54,13 +54,14 @@
     $creds = Get-Credential
     $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
     
-    .PARAMETER Csv
+    .PARAMETER csv
     The path and filename of the csv file containing the user information to create users from.
+    Please see the users-example.csv file for how to structure your own file.
 
-    .PARAMETER Ou
+    .PARAMETER ou
     The Organisational Unit to create the users in.
 
-    .PARAMETER Upn
+    .PARAMETER upn
     The Universal Principal Name the users should be configured with.
 
     .PARAMETER HomeLetter
@@ -98,21 +99,21 @@
     Connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Create-Accounts-CSV.ps1 -Csv E:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2018 -Upn contoso.com -L E:\logs -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
+    Create-Accounts-CSV.ps1 -Csv C:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2022 -Upn contoso.com -L C:\scripts\logs -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
     This will take information from the users.csv file and create the users in the Imported_Accounts OU. The users home drive will be mapped to W: and be located under \\filesrvr01\UserHomes.
-    The users will be a memeber of the All_Users AD group, will expire 31/07/2018 and will have the UPN of contoso.com. The log will be output to E:\logs and e-mailed.
+    The users will be a memeber of the All_Users AD group, will expire 31/07/2022 and will have the UPN of contoso.com. The log will be output to C:\scripts\logs and e-mailed.
 #>
 
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$True)]
-    [alias("Csv")]
+    [alias("csv")]
     $UsersList,
     [parameter(Mandatory=$True)]
-    [alias("Ou")]
+    [alias("ou")]
     $OrganisationalUnit,
     [parameter(Mandatory=$True)]
-    [alias("Upn")]
+    [alias("upn")]
     $AdUpn,
     [alias("HomeLetter")]
     $HomeDrive,

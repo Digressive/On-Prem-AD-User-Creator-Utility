@@ -1,12 +1,12 @@
 ﻿<#PSScriptInfo
 
-.VERSION 1.5
+.VERSION 1.6
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
 .AUTHOR Mike Galvin Contact: mike@gal.vin twitter.com/mikegalvin_
 
-.COMPANYNAME
+.COMPANYNAME Mike Galvin
 
 .COPYRIGHT (C) Mike Galvin. All rights reserved.
 
@@ -54,14 +54,14 @@
     $creds = Get-Credential
     $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
     
-    .PARAMETER csv
+    .PARAMETER CSV
     The path and filename of the csv file containing the user information to create users from.
     Please see the users-example.csv file for how to structure your own file.
 
-    .PARAMETER ou
+    .PARAMETER OU
     The Organisational Unit to create the users in.
 
-    .PARAMETER upn
+    .PARAMETER UPN
     The Universal Principal Name the users should be configured with.
 
     .PARAMETER HomeLetter
@@ -79,6 +79,9 @@
     .PARAMETER L
     The path to output the log file to.
     The file name will be AD-Account-Creation-YYYY-MM-dd-HH-mm-ss.log
+
+    .PARAMETER Subject
+    The email subject that the email should have. Encapulate with single or double quotes.
 
     .PARAMETER SendTo
     The e-mail address the log should be sent to.
@@ -99,21 +102,21 @@
     Connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Create-Accounts-CSV.ps1 -Csv C:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2022 -Upn contoso.com -L C:\scripts\logs -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
+    Create-Accounts-CSV.ps1 -Csv C:\foo\users.csv -Ou 'ou=Imported_Accounts,ou=MyUsers,dc=contoso,dc=com' -HomeLetter W: -HomePath \\filesrvr01\UserHomes -Group 'cn=All_Users,ou=Groups_Security,dc=contoso,dc=com' -Expire 31/07/2022 -Upn contoso.com -L C:\scripts\logs -Subject 'Server: AD User Create' -SendTo me@contoso.com -From AD-Account-Creation@contoso.com -Mail exch01.contoso.com
     This will take information from the users.csv file and create the users in the Imported_Accounts OU. The users home drive will be mapped to W: and be located under \\filesrvr01\UserHomes.
-    The users will be a memeber of the All_Users AD group, will expire 31/07/2022 and will have the UPN of contoso.com. The log will be output to C:\scripts\logs and e-mailed.
+    The users will be a member of the All_Users AD group, will expire 31/07/2022 and will have the UPN of contoso.com. The log will be output to C:\scripts\logs and e-mailed with a custom subject line.
 #>
 
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$True)]
-    [alias("csv")]
+    [alias("CSV")]
     $UsersList,
     [parameter(Mandatory=$True)]
-    [alias("ou")]
+    [alias("OU")]
     $OrganisationalUnit,
     [parameter(Mandatory=$True)]
-    [alias("upn")]
+    [alias("UPN")]
     $AdUpn,
     [alias("HomeLetter")]
     $HomeDrive,
@@ -125,6 +128,8 @@ Param(
     $AdExpire,
     [alias("L")]
     $LogPath,
+    [alias("Subject")]
+    $MailSubject,
     [alias("SendTo")]
     $MailTo,
     [alias("From")]
@@ -137,10 +142,10 @@ Param(
     $SmtpPwd,
     [switch]$UseSsl)
 
-## If users list csv file exists then run the script
+## If users list csv file exists then run the script.
 If (Test-Path $UsersList)
 {
-    ## If logging is configured, start log
+    ## If logging is configured, start log.
     If ($LogPath)
     {
         $LogFile = ("AD-Account-Creation-{0:yyyy-MM-dd-HH-mm-ss}.log" -f (Get-Date))
@@ -149,7 +154,7 @@ If (Test-Path $UsersList)
 
     If (Test-Path $UsersList)
     {
-        ## Start Log
+        ## Start log.
         If ($LogPath)
         {
             Start-Transcript $Log
@@ -191,37 +196,42 @@ If (Test-Path $UsersList)
         }
     }
 
-    ## If log was configured stop the log
+    ## If log was configured stop the log.
     If ($LogPath)
     {
         Stop-Transcript
 
-        ## If email was configured, set the variables for the email subject and body
+        ## If email was configured, set the variables for the email subject and body.
         If ($SmtpServer)
         {
-            $MailSubject = "AD Account Creation Log"
+            # If no subject is set, use the string below.
+            If ($Null -eq $MailSubject)
+            {
+                $MailSubject = "AD Account Creation"
+            }
+
             $MailBody = Get-Content -Path $Log | Out-String
 
-            ## If an email password was configured, create a variable with the username and password
+            ## If an email password was configured, create a variable with the username and password.
             If ($SmtpPwd)
             {
                 $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
                 $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
 
-                ## If ssl was configured, send the email with ssl
+                ## If ssl was configured, send the email with ssl.
                 If ($UseSsl)
                 {
                     Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -UseSsl -Credential $SmtpCreds
                 }
 
-                ## If ssl wasn't configured, send the email without ssl
+                ## If ssl wasn't configured, send the email without ssl.
                 Else
                 {
                     Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Credential $SmtpCreds
                 }
             }
 
-            ## If an email username and password were not configured, send the email without authentication
+            ## If an email username and password were not configured, send the email without authentication.
             Else
             {
                 Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer

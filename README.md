@@ -42,7 +42,7 @@ The password used for SMTP server authentication must be in an encrypted text fi
 
 Please note: This is only required if you need to authenticate to the SMTP server when send the log via e-mail.
 
-``` powershell
+```powershell
 $creds = Get-Credential
 $creds.Password | ConvertFrom-SecureString | Set-Content c:\scripts\ps-script-pwd.txt
 ```

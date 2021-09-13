@@ -1,8 +1,8 @@
 ﻿<#PSScriptInfo
 
-.VERSION YY.MM.DD
+.VERSION 21.09.13
 
-.GUID 
+.GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
 .AUTHOR Mike Galvin Contact: mike@gal.vin / twitter.com/mikegalvin_ / discord.gg/5ZsnJ5k
 
@@ -10,15 +10,15 @@
 
 .COPYRIGHT (C) Mike Galvin. All rights reserved.
 
-.TAGS 
+.TAGS Active Directory User Creation CSV Import
 
 .LICENSEURI
 
-.PROJECTURI https://gal.vin/URL
+.PROJECTURI https://gal.vin/2017/09/13/powershell-create-ad-users-from-csv/
 
 .ICONURI
 
-.EXTERNALMODULEDEPENDENCIES 
+.EXTERNALMODULEDEPENDENCIES Active Directory Management PowerShell module.
 
 .REQUIREDSCRIPTS
 
@@ -30,17 +30,48 @@
 
 <#
     .SYNOPSIS
-    Name Utility - Tagline
+    Creates Active Directory user accounts from a CSV file.
 
     .DESCRIPTION
-    What does it do
+    Creates Active Directory user accounts from a CSV file.
 
-    To send a log file via e-mail using ssl and an SMTP password you must generate an encrypted password file.
-    The password file is unique to both the user and machine.
-    To create the password file run this command as the user and on the machine that will use the file:
+    This script will create users based on information provided by a CSV file. All other options are added via command line switches.
+    
+    The command line switches provide configuration for:
+
+    Organisational Unit in which to create the users.
+    The user's UPN.
+    Home Drive location.
+    Home Drive Letter.
+    Membership of an Active Directory Group.
+    Account Expiry Date.
+
+    Please note: to send a log file using ssl and an SMTP password you must generate an encrypted
+    password file. The password file is unique to both the user and machine.
+    
+    The command is as follows:
 
     $creds = Get-Credential
-    $creds.Password | ConvertFrom-SecureString | Set-Content C:\scripts\ps-script-pwd.txt
+    $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
+
+    .PARAMETER CSV
+    The path and filename of the csv file containing the user information to create users from.
+    Please see the users-example.csv file for how to structure your own file.
+
+    .PARAMETER OU
+    The Organisational Unit to create the users in.
+
+    .PARAMETER UPN
+    The Universal Principal Name the users should be configured with.
+
+    .PARAMETER HomeLetter
+    The drive letter to use for the home drive path.
+
+    .PARAMETER HomePath
+    The path where the location of the home drive should reside.
+
+    .PARAMETER Groups
+    The name of the group(s) separated by a comma (,) that all the new users should be made a member of.
 
     .PARAMETER NoBanner
     Use this option to hide the ASCII art title in the console.
@@ -86,8 +117,20 @@
 [CmdletBinding()]
 Param(
     [parameter(Mandatory=$True)]
-    [alias("csv")]
+    [alias("CSV")]
     $UsersList,
+    [parameter(Mandatory=$True)]
+    [alias("OU")]
+    $OrgUnit,
+    [parameter(Mandatory=$True)]
+    [alias("UPN")]
+    $AdUpn,
+    [alias("HomeLetter")]
+    $HomeDrive,
+    [alias("HomePath")]
+    $HomeUnc,
+    [alias("Groups")]
+    $AdGroup,
     [alias("L")]
     [ValidateScript({Test-Path $_ -PathType 'Container'})]
     $LogPath,
@@ -119,7 +162,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "               Mike Galvin   https://gal.vin        Version YY.MM.DD                      "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "               Mike Galvin   https://gal.vin        Version 21.09.13                      "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
     Write-Host -Object ""
 }

@@ -318,7 +318,8 @@ Write-Log -Type Info -Evt "Process started"
 ## Display current config ends here.
 ##
 
-$OU = "OU=User_Accounts,DC=contoso,DC=com"
+$OrgUnit = "OU=User_Accounts,DC=contoso,DC=com"
+$AdUpn = "contoso.com"
 
 If (Test-Path $UsersList)
 {
@@ -354,31 +355,31 @@ If (Test-Path $UsersList)
         $UserFullName = $UserFirstName + " " + $UserLastName
 
         ## The UPN set as the U number and the email domain. If this is set to the name and there is a conflict the script won't complete.
-        $Upn = $UNum + "@contoso.com"
+        $Upn = $UNum + $AdUpn
         $DisplayName = $UserFullName
-        #$Company = "Contoso"
         $Pwd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
+
+        $HomeUncFull = "$HomeUnc\$SamName"
 
         $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
         ## Check to see if a user exists
-        If ($null -eq $UserExist)
-        {
-            ## Create the new user with the following settings.
-            #New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OU –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true
-            Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
-        }
+        #If ($null -eq $UserExist)
+        #{
+        #    ## Create the new user with the following settings.
+        #    New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
+        #    Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
+        #}
 
-        Else
-        {
-            Write-Log -Type Err -Evt "$SamName already exists, generating new number"
+        #else {
+            #Write-Log -Type Err -Evt "$SamName already exists, generating new number"
             do {
                 # Create a random number
                 $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
                 $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
-                #New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OU –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true
+                New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
                 Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
             } until ($null -eq $UserExist)
-        }
+        #}
     }
 
     Write-Log -Type Info -Evt "Process finished"

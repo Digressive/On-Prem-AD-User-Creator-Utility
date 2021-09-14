@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.09.13
+.VERSION 21.09.14
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -44,7 +44,6 @@
     Home Drive location.
     Home Drive Letter.
     Membership of an Active Directory Group.
-    Account Expiry Date.
 
     Please note: to send a log file using ssl and an SMTP password you must generate an encrypted
     password file. The password file is unique to both the user and machine.
@@ -78,13 +77,13 @@
 
     .PARAMETER L
     The path to output the log file to.
-    The file name will be Tool_YYYY-MM-dd_HH-mm-ss.log
+    The file name will be New-Users-AD-OnPrem_YYYY-MM-dd_HH-mm-ss.log
     Do not add a trailing \ backslash.
 
     .PARAMETER Subject
     The subject line for the e-mail log.
     Encapsulate with single or double quotes.
-    If no subject is specified, the default of "Tool Utility Log" will be used.
+    If no subject is specified, the default of "New Users AD Log" will be used.
 
     .PARAMETER SendTo
     The e-mail address the log should be sent to.
@@ -108,7 +107,7 @@
     Configures the utility to connect to the SMTP server using SSL.
 
     .EXAMPLE
-    Tool.ps1 -L C:\scripts\logs -Subject 'Server: Tool Name' -SendTo me@contoso.com -From Tool-Name@contoso.com -Smtp smtp.outlook.com -User user@contoso.com -Pwd C:\scripts\ps-script-pwd.txt -UseSsl
+    New-Users-AD-OnPrem.ps1 -csv C:\Users\sysadmin\Desktop\user-list.csv -upn contoso.com -ou 'OU=User_Accounts,DC=contoso,DC=com' -HomeLetter X -HomePath \\fs01\users$ -L C:\scripts\logs -Subject 'New Users AD Log' -SendTo me@contoso.com -From New-Users-AD@contoso.com -Smtp smtp.outlook.com -User user@contoso.com -Pwd C:\scripts\ps-script-pwd.txt -UseSsl
 
     The log file will be output to C:\scripts\logs and sent via e-mail with a custom subject line.
 #>
@@ -130,7 +129,7 @@ Param(
     [alias("HomePath")]
     $HomeUnc,
     [alias("Groups")]
-    $AdGroup,
+    $AdGrps,
     [alias("L")]
     [ValidateScript({Test-Path $_ -PathType 'Container'})]
     $LogPath,
@@ -162,7 +161,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "               Mike Galvin   https://gal.vin        Version 21.09.13                      "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "               Mike Galvin   https://gal.vin        Version 21.09.14                      "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
     Write-Host -Object ""
 }
@@ -171,7 +170,7 @@ If ($NoBanner -eq $False)
 ## If the log file already exists, clear it.
 If ($LogPath)
 {
-    $LogFile = ("Tool-Name_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
+    $LogFile = ("New-Users-AD-OnPrem_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
     $LogT = Test-Path -Path $Log
@@ -238,6 +237,42 @@ Function Write-Log($Type, $Evt)
 ## Display the current config and log if configured.
 ##
 Write-Log -Type Conf -Evt "************ Running with the following config *************."
+
+Write-Log -Type Conf -Evt "CSV file:..............$UsersList."
+Write-Log -Type Conf -Evt "OU for users:..........$OrgUnit."
+Write-Log -Type Conf -Evt "UPN to use:............$AdUpn."
+
+If ($Null -ne $HomeDrive)
+{
+    Write-Log -Type Conf -Evt "Home Letter:...........$HomeDrive."
+}
+
+else {
+    Write-Log -Type Conf -Evt "Home Letter:...........No Config"
+}
+
+If ($Null -ne $HomeUnc)
+{
+    Write-Log -Type Conf -Evt "Home UNC Path:.........$HomeUnc."
+}
+
+else {
+    Write-Log -Type Conf -Evt "Home UNC Path:.........No Config"
+}
+
+If ($Null -ne $AdGrps)
+{
+    Write-Log -Type Conf -Evt "Groups for User:"
+
+    ForEach ($Grp in $AdGrps)
+    {
+        Write-Log -Type Conf -Evt ".........................$Grp"
+    }
+}
+
+else {
+    Write-Log -Type Conf -Evt "Groups for User:.......No Config"
+}
 
 If ($Null -ne $LogPath)
 {
@@ -318,21 +353,8 @@ Write-Log -Type Info -Evt "Process started"
 ## Display current config ends here.
 ##
 
-$OrgUnit = "OU=User_Accounts,DC=contoso,DC=com"
-$AdUpn = "contoso.com"
-
 If (Test-Path $UsersList)
 {
-    $Log = "C:\scripts\New-Users.log"
-
-    $LogT = Test-Path -Path $Log
-
-    ## Check to see if a log already exists, if it does then clear it.
-    If ($LogT)
-    {
-        Clear-Content -Path $Log
-    }
-
     Write-Log -Type Info -Evt "Log started"
 
     ## Add this for password generation
@@ -355,31 +377,40 @@ If (Test-Path $UsersList)
         $UserFullName = $UserFirstName + " " + $UserLastName
 
         ## The UPN set as the U number and the email domain. If this is set to the name and there is a conflict the script won't complete.
-        $Upn = $UNum + $AdUpn
+        $Upn = $SamName + "@$AdUpn"
         $DisplayName = $UserFullName
         $Pwd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
 
-        $HomeUncFull = "$HomeUnc\$SamName"
+        If ($Null -ne $HomeUnc)
+        {
+            $HomeUncFull = "$HomeUnc\$SamName"
+        }
+        else {
+            $HomeUncFull = $null
+            $HomeDrive = $null
+        }
 
         $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
-        ## Check to see if a user exists
-        #If ($null -eq $UserExist)
-        #{
-        #    ## Create the new user with the following settings.
-        #    New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
-        #    Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
-        #}
 
-        #else {
-            #Write-Log -Type Err -Evt "$SamName already exists, generating new number"
-            do {
-                # Create a random number
-                $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
-                $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
-                #New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
-                Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
-            } until ($null -eq $UserExist)
-        #}
+        do {
+            # Create a random number
+            $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
+            $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
+            New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
+            Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
+        } until ($null -eq $UserExist)
+
+        If ($null -ne $AdGrps)
+        {
+            ForEach ($AdGrp in $AdGrps) {
+                ##do groups
+                ##wait for creation of user
+                Start-Sleep -s 3
+                #get-adgroup -Filter "name -eq 'Base_User'"
+                #ad group ect
+                Write-Log -Type Info -Evt "Adding user:$SamName to $AdGrp"
+            }
+        }
     }
 
     Write-Log -Type Info -Evt "Process finished"
@@ -396,7 +427,7 @@ If ($LogPath)
         ## Default e-mail subject if none is configured.
         If ($Null -eq $MailSubject)
         {
-            $MailSubject = "Tool Name Utility Log"
+            $MailSubject = "New Users AD Log"
         }
 
         ## Default Smtp Port if none is configured.

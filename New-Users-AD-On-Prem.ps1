@@ -376,7 +376,7 @@ If (Test-Path $UsersList)
                 # Create a random number
                 $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
                 $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
-                New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
+                #New-ADUser -Name "$UserFullName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword $Pwd -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
                 Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
             } until ($null -eq $UserExist)
         #}

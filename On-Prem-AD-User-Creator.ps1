@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.09.14
+.VERSION 21.09.15
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -30,31 +30,28 @@
 
 <#
     .SYNOPSIS
-    Creates Active Directory user accounts from a CSV file.
+    On-Prem AD User Creator Utility - Configurable Script to create new Active Directory user accounts.
 
     .DESCRIPTION
-    Creates Active Directory user accounts from a CSV file.
+    This script will create AD users based on first and last names in a specified CSV file.
+    All other options are added via command line switches.
 
-    This script will create users based on information provided by a CSV file. All other options are added via command line switches.
-    
     The command line switches provide configuration for:
-
-    Organisational Unit in which to create the users.
-    The user's UPN.
+    Organisational Unit to create the new users.
+    User's UPN.
     Home Drive location.
-    Home Drive Letter.
-    Membership of an Active Directory Group.
+    Home Drive letter.
+    Membership of Active Directory Groups.
 
-    Please note: to send a log file using ssl and an SMTP password you must generate an encrypted
-    password file. The password file is unique to both the user and machine.
-    
-    The command is as follows:
+    To send a log file via e-mail using ssl and an SMTP password you must generate an encrypted password file.
+    The password file is unique to both the user and machine.
+    To create the password file run this command as the user and on the machine that will use the file:
 
     $creds = Get-Credential
-    $creds.Password | ConvertFrom-SecureString | Set-Content c:\foo\ps-script-pwd.txt
+    $creds.Password | ConvertFrom-SecureString | Set-Content C:\scripts\ps-script-pwd.txt
 
     .PARAMETER CSV
-    The path and filename of the csv file containing the user information to create users from.
+    The path and filename of the csv file containing the user information.
     Please see the users-example.csv file for how to structure your own file.
 
     .PARAMETER OU
@@ -70,14 +67,14 @@
     The path where the location of the home drive should reside.
 
     .PARAMETER Groups
-    The name of the group(s) separated by a comma (,) that all the new users should be made a member of.
+    The name of the group(s) separated by a comma (,) that all the new users should be a member of.
 
     .PARAMETER NoBanner
     Use this option to hide the ASCII art title in the console.
 
     .PARAMETER L
     The path to output the log file to.
-    The file name will be New-Users-AD-OnPrem_YYYY-MM-dd_HH-mm-ss.log
+    The file name will be On-Prem-AD-User-Creator_YYYY-MM-dd_HH-mm-ss.log
     Do not add a trailing \ backslash.
 
     .PARAMETER Subject
@@ -107,9 +104,11 @@
     Configures the utility to connect to the SMTP server using SSL.
 
     .EXAMPLE
-    New-Users-AD-OnPrem.ps1 -csv C:\Users\sysadmin\Desktop\user-list.csv -upn contoso.com -ou 'OU=User_Accounts,DC=contoso,DC=com' -HomeLetter X -HomePath \\fs01\users$ -L C:\scripts\logs -Subject 'New Users AD Log' -SendTo me@contoso.com -From New-Users-AD@contoso.com -Smtp smtp.outlook.com -User user@contoso.com -Pwd C:\scripts\ps-script-pwd.txt -UseSsl
+    On-Prem-AD-User-Creator.ps1 -csv C:\scripts\user-list.csv -upn contoso.com -ou 'OU=User_Accounts,DC=contoso,DC=com' -HomeLetter X -HomePath \\fs01\users$ -Groups UserGroup1,UserGroup2
+    -L C:\scripts\logs -Subject 'Server: New Users Log' -SendTo me@contoso.com -From New-Users-AD@contoso.com -Smtp smtp.outlook.com -User user@contoso.com -Pwd C:\scripts\ps-script-pwd.txt -UseSsl
 
-    The log file will be output to C:\scripts\logs and sent via e-mail with a custom subject line.
+    This will create new users from the names in the csv file located in C:\scripts\user-list.csv and set their Home Drive letter to X and the path to \\fs01\users$\%username%.
+    The users will also be added to the groups UserGroup1 and UserGroup2. The log file will be output to C:\scripts\logs and sent via e-mail with a custom subject line.
 #>
 
 ## Set up command line switches.
@@ -154,15 +153,18 @@ Param(
 If ($NoBanner -eq $False)
 {
     Write-Host -Object ""
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "               Mike Galvin   https://gal.vin        Version 21.09.14                      "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                          "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "      _   __                __  __                             "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     / | / /__ _      __   / / / /_______  __________          "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    /  |/ / _ \ | /| / /  / / / / ___/ _ \/ ___/ ___/          "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "   / /|  /  __/ |/ |/ /  / /_/ (__  )  __/ /  (__  )           "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  /_/ |_/\___/|__/|__/___\____/____/\___/_/  /____/            "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     /   |  / __ \   / __ \____     / __ \________  ____ ___   "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    / /| | / / / /  / / / / __ \   / /_/ / ___/ _ \/ __ '__ \  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "   / ___ |/ /_/ /  / /_/ / / / /  / ____/ /  /  __/ / / / / /  "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  /_/  |_/_____/   \____/_/ /_/  /_/   /_/   \___/_/ /_/ /_/   "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                               "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.09.15     "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                               "
     Write-Host -Object ""
 }
 
@@ -170,7 +172,7 @@ If ($NoBanner -eq $False)
 ## If the log file already exists, clear it.
 If ($LogPath)
 {
-    $LogFile = ("New-Users-AD-OnPrem_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
+    $LogFile = ("On-Prem-AD-User-Creator_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
     $LogT = Test-Path -Path $Log
@@ -262,11 +264,11 @@ else {
 
 If ($Null -ne $AdGrps)
 {
-    Write-Log -Type Conf -Evt "Groups for User:"
+    Write-Log -Type Conf -Evt "Groups for User:......."
 
     ForEach ($Grp in $AdGrps)
     {
-        Write-Log -Type Conf -Evt ".........................$Grp"
+        Write-Log -Type Conf -Evt ".......................$Grp"
     }
 }
 
@@ -357,13 +359,15 @@ If (Test-Path $UsersList)
 {
     Write-Log -Type Info -Evt "Log started"
 
-    ## Add this for password generation
+    ## Use this for password generation
     Add-Type -AssemblyName System.Web
 
-    ## This is where the script actually starts. Get the users names from the CSV.
+    #Creating array for the sam account names for use later
+    $SamsList = @()
+
+    #Get the users names from the CSV
     $UserCsv = Import-Csv -Path $UsersList
 
-    ## For each line in the CSV run the create new user function.
     ForEach ($User in $UserCsv) {
         ## Clean ' from first names
         $FirstnameClean = $User.Firstname -replace "[']"
@@ -372,15 +376,17 @@ If (Test-Path $UsersList)
         $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
 
         $SamName = $FirstnameClean + $RandNum
+        $SamsList += $SamName
         $UserFirstName = $User.Firstname
         $UserLastName = $User.Lastname
         $UserFullName = $UserFirstName + " " + $UserLastName
 
-        ## The UPN set as the U number and the email domain. If this is set to the name and there is a conflict the script won't complete.
+        ## The UPN set as the new sam account name and the email domain.
         $Upn = $SamName + "@$AdUpn"
         $DisplayName = $UserFullName
-        $Pwd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
+        $Pwrd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
 
+        ## If no home letter or path is configured, set to null
         If ($Null -ne $HomeUnc)
         {
             $HomeUncFull = "$HomeUnc\$SamName"
@@ -390,29 +396,43 @@ If (Test-Path $UsersList)
             $HomeDrive = $null
         }
 
+        ## Check for existance of existing users with same name
         $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
 
+        ## If a user does already exist with name sam name, regenerate the nummber and try to create again. Do this until user does not exist.
         do {
             # Create a random number
             $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
             $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
-            New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
-            Write-Log -Type Info -Evt "Creating new user $UserFirstName $UserLastName - Username:$SamName, Password:$Pwd"
-        } until ($null -eq $UserExist)
 
-        If ($null -ne $AdGrps)
-        {
+            try {
+                New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
+                Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd"
+            }
+            catch {
+                Write-Log -Type Err -Evt $_.Exception.Message
+            }
+
+        } until ($null -eq $UserExist)
+    }
+
+    ## If Groups are configured, find and add them
+    If ($null -ne $AdGrps)
+    {
+        ForEach ($Sams in $SamsList) {
             ForEach ($AdGrp in $AdGrps) {
-                ##do groups
-                ##wait for creation of user
-                Start-Sleep -s 3
-                #get-adgroup -Filter "name -eq 'Base_User'"
-                #ad group ect
-                Write-Log -Type Info -Evt "Adding user:$SamName to $AdGrp"
+                try {
+                    Add-ADGroupMember -Identity $AdGrp -Members $Sams
+                    Write-Log -Type Info -Evt "(Group) Adding user: $Sams to $AdGrp"
+                }
+                catch {
+                    Write-Log -Type Err -Evt $_.Exception.Message
+                }
             }
         }
     }
 
+    ## Jobs done.
     Write-Log -Type Info -Evt "Process finished"
 }
 

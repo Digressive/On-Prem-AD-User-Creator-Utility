@@ -79,4 +79,4 @@ Here’s a list of all the command line switches and example configurations.
 On-Prem-AD-User-Creator.ps1 -csv C:\scripts\user-list.csv -upn contoso.com -ou 'OU=User_Accounts,DC=contoso,DC=com' -HomeLetter X -HomePath \\fs01\users$ -Groups UserGroup1,UserGroup2 -L C:\scripts\logs -Subject 'Server: New Users Log' -SendTo me@contoso.com -From New-Users-AD@contoso.com -Smtp smtp.outlook.com -User user@contoso.com -Pwd C:\scripts\ps-script-pwd.txt -UseSsl
 ```
 
-This will create new users from the names in the csv file located in C:\scripts\user-list.csv and set their Home Drive letter to X and the path to \\\fs01\users$\%username%. The users will also be added to the groups UserGroup1 and UserGroup2. The log file will be output to C:\scripts\logs and sent via e-mail with a custom subject line.
+This will create new users from the names in the csv file located in C:\scripts\user-list.csv and set their Home Drive letter to X and the path to \\\fs01\users$\\%username%. The users will also be added to the groups UserGroup1 and UserGroup2. The log file will be output to C:\scripts\logs and sent via e-mail with a custom subject line.

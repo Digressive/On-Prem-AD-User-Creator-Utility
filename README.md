@@ -13,7 +13,7 @@ Configurable Script For Creating Active Directory User Accounts
 / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ / 
 \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /  
                                                                                    /____/   
-   Mike Galvin   https://gal.vin        Version 21.09.15
+   Mike Galvin   https://gal.vin        Version 21.09.20
 ```
 
 For full instructions and documentation, [visit my site.](https://gal.vin/posts/powershell-create-ad-users-from-csv)

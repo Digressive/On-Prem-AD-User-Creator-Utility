@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.09.15
+.VERSION 21.09.20
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -163,7 +163,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ /   "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                     /____/     "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.09.15                                      "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.09.20                                      "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                "
     Write-Host -Object ""
 }
@@ -372,10 +372,13 @@ If (Test-Path $UsersList)
         ## Clean ' from first names
         $FirstnameClean = $User.Firstname -replace "[']"
 
+        ## If firstname is long, shorten for samaccountname limit + rand number
+        $NameSafeLen = $FirstnameClean.substring(0, [System.Math]::Min(16, $FirstnameClean.Length))
+
         # Create a random number
         $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
 
-        $SamName = $FirstnameClean + $RandNum
+        $SamName = $NameSafeLen + $RandNum
         $SamsList += $SamName
         $UserFirstName = $User.Firstname
         $UserLastName = $User.Lastname
@@ -407,7 +410,7 @@ If (Test-Path $UsersList)
 
             try {
                 New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
-                Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd"
+                Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd [END]"
             }
             catch {
                 Write-Log -Type Err -Evt $_.Exception.Message

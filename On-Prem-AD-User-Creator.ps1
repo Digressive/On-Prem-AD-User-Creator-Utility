@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.09.20
+.VERSION 21.10.23
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -163,7 +163,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ /   "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                     /____/     "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.09.20                                      "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.10.23                                      "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                "
     Write-Host -Object ""
 }
@@ -376,7 +376,7 @@ If (Test-Path $UsersList)
         $NameSafeLen = $FirstnameClean.substring(0, [System.Math]::Min(16, $FirstnameClean.Length))
 
         # Create a random number
-        $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
+        $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
 
         $SamName = $NameSafeLen + $RandNum
         $SamsList += $SamName
@@ -405,7 +405,7 @@ If (Test-Path $UsersList)
         ## If a user does already exist with name sam name, regenerate the nummber and try to create again. Do this until user does not exist.
         do {
             # Create a random number
-            $RandNum = (Get-Random -Minimum 0 -Maximum 999).ToString('000')
+            $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
             $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
 
             try {

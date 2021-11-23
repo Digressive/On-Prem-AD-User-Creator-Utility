@@ -14,7 +14,7 @@
 
 .LICENSEURI
 
-.PROJECTURI https://gal.vin/2017/09/13/powershell-create-ad-users-from-csv/
+.PROJECTURI https://gal.vin/posts/powershell-create-ad-users-from-csv/
 
 .ICONURI
 

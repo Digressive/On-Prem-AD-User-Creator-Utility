@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.10.23
+.VERSION 21.12.08
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -130,7 +130,6 @@ Param(
     [alias("Groups")]
     $AdGrps,
     [alias("L")]
-    [ValidateScript({Test-Path $_ -PathType 'Container'})]
     $LogPath,
     [alias("Subject")]
     $MailSubject,
@@ -163,7 +162,7 @@ If ($NoBanner -eq $False)
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ /   "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /    "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                     /____/     "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.10.23                                      "
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.12.08                                      "
     Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                "
     Write-Host -Object ""
 }
@@ -172,6 +171,14 @@ If ($NoBanner -eq $False)
 ## If the log file already exists, clear it.
 If ($LogPath)
 {
+    ## Make sure the log directory exists.
+    $LogPathFolderT = Test-Path $LogPath
+
+    If ($LogPathFolderT -eq $False)
+    {
+        New-Item $LogPath -ItemType Directory -Force | Out-Null
+    }
+
     $LogFile = ("On-Prem-AD-User-Creator_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
     $Log = "$LogPath\$LogFile"
 
@@ -238,8 +245,11 @@ Function Write-Log($Type, $Evt)
 ##
 ## Display the current config and log if configured.
 ##
-Write-Log -Type Conf -Evt "************ Running with the following config *************."
 
+Write-Log -Type Conf -Evt "************ Running with the following config *************."
+Write-Log -Type Conf -Evt "Utility Version:.......21.12.08"
+Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
+Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 Write-Log -Type Conf -Evt "CSV file:..............$UsersList."
 Write-Log -Type Conf -Evt "OU for users:..........$OrgUnit."
 Write-Log -Type Conf -Evt "UPN to use:............$AdUpn."
@@ -351,6 +361,7 @@ else {
 Write-Log -Type Conf -Evt "-UseSSL switch is:.....$UseSsl."
 Write-Log -Type Conf -Evt "************************************************************"
 Write-Log -Type Info -Evt "Process started"
+
 ##
 ## Display current config ends here.
 ##

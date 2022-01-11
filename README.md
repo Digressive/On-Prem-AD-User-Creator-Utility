@@ -2,7 +2,7 @@
 
 Configurable Script For Creating Active Directory User Accounts
 
-For full instructions and documentation, [visit my site.](https://gal.vin/posts/powershell-create-ad-users-from-csv)
+For full instructions and documentation, [visit my site.](https://gal.vin/utils/on-prem-ad-user-creator-utility/)
 
 Please consider supporting my work:
 
@@ -19,7 +19,7 @@ Join the [Discord](http://discord.gg/5ZsnJ5k) or Tweet me if you have questions:
 * Requires A CSV file containing the FirstName and LastName of each user to create.
 * Configurable list of groups to add new users to.
 * Randomly generated passwords for each user.
-* User names are generated from firstname & a 3 digit random number.
+* User names are generated from first name & a 3 digit random number.
 * The utility requires at least PowerShell 5.0.
 * This utility has been tested on Windows 10, Windows Server 2019 and Windows Server 2016 (Datacenter and Core Installations).
 

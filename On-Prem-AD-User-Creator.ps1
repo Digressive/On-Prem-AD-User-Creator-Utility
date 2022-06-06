@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 21.12.08
+.VERSION 22.06.06
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -77,10 +77,16 @@
     The file name will be On-Prem-AD-User-Creator_YYYY-MM-dd_HH-mm-ss.log
     Do not add a trailing \ backslash.
 
+    .PARAMETER LogRotate
+    Instructs the utility to remove logs older than a specified number of days.
+
+    .PARAMETER Help
+    Show usage help in the command line.
+
     .PARAMETER Subject
     The subject line for the e-mail log.
     Encapsulate with single or double quotes.
-    If no subject is specified, the default of "New Users AD Log" will be used.
+    If no subject is specified, the default of "On-Prem AD User Creator Utility Log" will be used.
 
     .PARAMETER SendTo
     The e-mail address the log should be sent to.
@@ -114,13 +120,10 @@
 ## Set up command line switches.
 [CmdletBinding()]
 Param(
-    [parameter(Mandatory=$True)]
     [alias("CSV")]
     $UsersList,
-    [parameter(Mandatory=$True)]
     [alias("OU")]
     $OrgUnit,
-    [parameter(Mandatory=$True)]
     [alias("UPN")]
     $AdUpn,
     [alias("HomeLetter")]
@@ -131,6 +134,8 @@ Param(
     $AdGrps,
     [alias("L")]
     $LogPath,
+    [alias("LogRotate")]
+    $LogHistory,
     [alias("Subject")]
     $MailSubject,
     [alias("SendTo")]
@@ -147,353 +152,364 @@ Param(
     [ValidateScript({Test-Path -Path $_ -PathType Leaf})]
     $SmtpPwd,
     [switch]$UseSsl,
+    [switch]$Help,
     [switch]$NoBanner)
 
 If ($NoBanner -eq $False)
 {
-    Write-Host -Object ""
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     ____              ____                         ___    ____                                 "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    / __ \____        / __ \________  ____ ___     /   |  / __ \                                "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "   / / / / __ \______/ /_/ / ___/ _ \/ __ '__ \   / /| | / / / /                                "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  / /_/ / / / /_____/ ____/ /  /  __/ / / / / /  / ___ |/ /_/ /                                 "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  \____/_/_/_/     /_/   /_/ __\___/_/ /_/ /_/  /_/__|_/_____/       __  ____  _ ___ __         "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "    / / / /_______  _____   / ____/_______  ____ _/ /_____  _____   / / / / /_(_) (_) /___  __  "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "   / / / / ___/ _ \/ ___/  / /   / ___/ _ \/ __ '/ __/ __ \/ ___/  / / / / __/ / / / __/ / / /  "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ /   "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "  \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /    "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                     /____/     "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "     Mike Galvin   https://gal.vin        Version 21.12.08                                      "
-    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "                                                                                                "
-    Write-Host -Object ""
+    Write-Host -ForegroundColor Yellow -BackgroundColor Black -Object "
+           ____              ____                         ___    ____                                   
+          / __ \____        / __ \________  ____ ___     /   |  / __ \           Mike Galvin            
+         / / / / __ \______/ /_/ / ___/ _ \/ __ '__ \   / /| | / / / /         https://gal.vin          
+        / /_/ / / / /_____/ ____/ /  /  __/ / / / / /  / ___ |/ /_/ /                                   
+        \____/_/_/_/     /_/   /_/ __\___/_/ /_/ /_/  /_/__|_/_____/       __  ____  _ ___ __           
+          / / / /_______  _____   / ____/_______  ____ _/ /_____  _____   / / / / /_(_) (_) /___  __    
+         / / / / ___/ _ \/ ___/  / /   / ___/ _ \/ __ '/ __/ __ \/ ___/  / / / / __/ / / / __/ / / /    
+        / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ /     
+        \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /      
+                                                                                           /____/       
+            Version 22.06.06                                                                            
+          See -help for usage               Donate: https://www.paypal.me/digressive                    
+"
 }
 
-## If logging is configured, start logging.
-## If the log file already exists, clear it.
-If ($LogPath)
+If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
 {
-    ## Make sure the log directory exists.
-    $LogPathFolderT = Test-Path $LogPath
+    Write-Host -Object "Usage:
+    From a terminal run: [path\]Office-Update.ps1 -Office [path\]Office365 -Config config-365-x64.xml -Days 30
+    This will update the office installation files in the specified directory, and delete update files older than 30 days
 
-    If ($LogPathFolderT -eq $False)
-    {
-        New-Item $LogPath -ItemType Directory -Force | Out-Null
-    }
+    To output a log: -L [path]. To remove logs produced by the utility older than X days: -LogRotate [number].
+    Run with no ASCII banner: -NoBanner
 
-    $LogFile = ("On-Prem-AD-User-Creator_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
-    $Log = "$LogPath\$LogFile"
+    To use the 'email log' function:
+    Specify the subject line with -Subject ""'[subject line]'"" If you leave this blank a default subject will be used
+    Make sure to encapsulate it with double & single quotes as per the example for Powershell to read it correctly.
+    Specify the 'to' address with -SendTo [example@contoso.com]
+    Specify the 'from' address with -From [example@contoso.com]
+    Specify the SMTP server with -Smtp [smtp server name]
+    Specify the port to use with the SMTP server with -Port [port number].
+    If none is specified then the default of 25 will be used.
+    Specify the user to access SMTP with -User [example@contoso.com]
+    Specify the password file to use with -Pwd [path\]ps-script-pwd.txt.
+    Use SSL for SMTP server connection with -UseSsl.
 
-    $LogT = Test-Path -Path $Log
-
-    If ($LogT)
-    {
-        Clear-Content -Path $Log
-    }
-
-    Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log started"
+    To generate an encrypted password file run the following commands
+    on the computer and the user that will run the script:
+"
+    Write-Host -Object '    $creds = Get-Credential
+    $creds.Password | ConvertFrom-SecureString | Set-Content [path\]ps-script-pwd.txt'
 }
 
-## Function to get date in specific format.
-Function Get-DateFormat
-{
-    Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-}
-
-## Function for logging.
-Function Write-Log($Type, $Evt)
-{
-    If ($Type -eq "Info")
+else {
+    ## If logging is configured, start logging.
+    ## If the log file already exists, clear it.
+    If ($LogPath)
     {
-        If ($Null -ne $LogPath)
+        ## Make sure the log directory exists.
+        If ((Test-Path -Path $LogPath) -eq $False)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Evt"
+            New-Item $LogPath -ItemType Directory -Force | Out-Null
         }
-        
-        Write-Host -Object "$(Get-DateFormat) [INFO] $Evt"
-    }
 
-    If ($Type -eq "Succ")
-    {
-        If ($Null -ne $LogPath)
+        $LogFile = ("On-Prem-AD-User-Creator_{0:yyyy-MM-dd_HH-mm-ss}.log" -f (Get-Date))
+        $Log = "$LogPath\$LogFile"
+
+        If (Test-Path -Path $Log)
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Evt"
+            Clear-Content -Path $Log
         }
 
-        Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Evt"
+        Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log started"
     }
 
-    If ($Type -eq "Err")
+    ## Function to get date in specific format.
+    Function Get-DateFormat
     {
-        If ($Null -ne $LogPath)
-        {
-            Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Evt"
-        }
-
-        Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Evt"
+        Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     }
 
-    If ($Type -eq "Conf")
+    ## Function for logging.
+    Function Write-Log($Type, $Evt)
     {
-        If ($Null -ne $LogPath)
+        If ($Type -eq "Info")
         {
-            Add-Content -Path $Log -Encoding ASCII -Value "$Evt"
+            If ($LogPath)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [INFO] $Evt"
+            }
+            
+            Write-Host -Object "$(Get-DateFormat) [INFO] $Evt"
         }
 
-        Write-Host -ForegroundColor Cyan -Object "$Evt"
+        If ($Type -eq "Succ")
+        {
+            If ($LogPath)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [SUCCESS] $Evt"
+            }
+
+            Write-Host -ForegroundColor Green -Object "$(Get-DateFormat) [SUCCESS] $Evt"
+        }
+
+        If ($Type -eq "Err")
+        {
+            If ($LogPath)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$(Get-DateFormat) [ERROR] $Evt"
+            }
+
+            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "$(Get-DateFormat) [ERROR] $Evt"
+        }
+
+        If ($Type -eq "Conf")
+        {
+            If ($LogPath)
+            {
+                Add-Content -Path $Log -Encoding ASCII -Value "$Evt"
+            }
+
+            Write-Host -ForegroundColor Cyan -Object "$Evt"
+        }
     }
-}
 
-##
-## Display the current config and log if configured.
-##
+    ##
+    ## Display the current config and log if configured.
+    ##
 
-Write-Log -Type Conf -Evt "************ Running with the following config *************."
-Write-Log -Type Conf -Evt "Utility Version:.......21.12.08"
-Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
-Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
-Write-Log -Type Conf -Evt "CSV file:..............$UsersList."
-Write-Log -Type Conf -Evt "OU for users:..........$OrgUnit."
-Write-Log -Type Conf -Evt "UPN to use:............$AdUpn."
+    Write-Log -Type Conf -Evt "************ Running with the following config *************."
+    Write-Log -Type Conf -Evt "Utility Version:.......22.06.06"
+    Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
+    Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
 
-If ($Null -ne $HomeDrive)
-{
-    Write-Log -Type Conf -Evt "Home Letter:...........$HomeDrive."
-}
-
-else {
-    Write-Log -Type Conf -Evt "Home Letter:...........No Config"
-}
-
-If ($Null -ne $HomeUnc)
-{
-    Write-Log -Type Conf -Evt "Home UNC Path:.........$HomeUnc."
-}
-
-else {
-    Write-Log -Type Conf -Evt "Home UNC Path:.........No Config"
-}
-
-If ($Null -ne $AdGrps)
-{
-    Write-Log -Type Conf -Evt "Groups for User:......."
-
-    ForEach ($Grp in $AdGrps)
+    If ($UsersList)
     {
-        Write-Log -Type Conf -Evt ".......................$Grp"
+        Write-Log -Type Conf -Evt "CSV file:..............$UsersList."
     }
-}
 
-else {
-    Write-Log -Type Conf -Evt "Groups for User:.......No Config"
-}
+    If ($OrgUnit)
+    {
+        Write-Log -Type Conf -Evt "OU for users:..........$OrgUnit."
+    }
 
-If ($Null -ne $LogPath)
-{
-    Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
-}
+    If ($AdUpn)
+    {
+        Write-Log -Type Conf -Evt "UPN to use:............$AdUpn."
+    }
 
-else {
-    Write-Log -Type Conf -Evt "Logs directory:........No Config"
-}
+    If ($HomeDrive)
+    {
+        Write-Log -Type Conf -Evt "Home Letter:...........$HomeDrive."
+    }
 
-If ($MailTo)
-{
-    Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
-}
+    If ($HomeUnc)
+    {
+        Write-Log -Type Conf -Evt "Home UNC Path:.........$HomeUnc."
+    }
 
-else {
-    Write-Log -Type Conf -Evt "E-mail log to:.........No Config"
-}
+    If ($AdGrps)
+    {
+        Write-Log -Type Conf -Evt "Groups for User:......."
 
-If ($MailFrom)
-{
-    Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
-}
-
-else {
-    Write-Log -Type Conf -Evt "E-mail log from:.......No Config"
-}
-
-If ($MailSubject)
-{
-    Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
-}
-
-else {
-    Write-Log -Type Conf -Evt "E-mail subject:........Default"
-}
-
-If ($SmtpServer)
-{
-    Write-Log -Type Conf -Evt "SMTP server is:........$SmtpServer."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP server is:........No Config"
-}
-
-If ($SmtpPort)
-{
-    Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP Port:.............Default"
-}
-
-If ($SmtpUser)
-{
-    Write-Log -Type Conf -Evt "SMTP user is:..........$SmtpUser."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP user is:..........No Config"
-}
-
-If ($SmtpPwd)
-{
-    Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
-}
-
-else {
-    Write-Log -Type Conf -Evt "SMTP pwd file:.........No Config"
-}
-
-Write-Log -Type Conf -Evt "-UseSSL switch is:.....$UseSsl."
-Write-Log -Type Conf -Evt "************************************************************"
-Write-Log -Type Info -Evt "Process started"
-
-##
-## Display current config ends here.
-##
-
-If (Test-Path $UsersList)
-{
-    Write-Log -Type Info -Evt "Log started"
-
-    ## Use this for password generation
-    Add-Type -AssemblyName System.Web
-
-    #Creating array for the sam account names for use later
-    $SamsList = @()
-
-    #Get the users names from the CSV
-    $UserCsv = Import-Csv -Path $UsersList
-
-    ForEach ($User in $UserCsv) {
-        ## Clean ' from first names
-        $FirstnameClean = $User.Firstname -replace "[']"
-
-        ## If firstname is long, shorten for samaccountname limit + rand number
-        $NameSafeLen = $FirstnameClean.substring(0, [System.Math]::Min(16, $FirstnameClean.Length))
-
-        # Create a random number
-        $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
-
-        $SamName = $NameSafeLen + $RandNum
-        $SamsList += $SamName
-        $UserFirstName = $User.Firstname
-        $UserLastName = $User.Lastname
-        $UserFullName = $UserFirstName + " " + $UserLastName
-
-        ## The UPN set as the new sam account name and the email domain.
-        $Upn = $SamName + "@$AdUpn"
-        $DisplayName = $UserFullName
-        $Pwrd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
-
-        ## If no home letter or path is configured, set to null
-        If ($Null -ne $HomeUnc)
+        ForEach ($Grp in $AdGrps)
         {
-            $HomeUncFull = "$HomeUnc\$SamName"
+            Write-Log -Type Conf -Evt ".......................$Grp"
         }
-        else {
-            $HomeUncFull = $null
-            $HomeDrive = $null
-        }
+    }
 
-        ## Check for existance of existing users with same name
-        $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
+    If ($LogPath)
+    {
+        Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
+    }
 
-        ## If a user does already exist with name sam name, regenerate the nummber and try to create again. Do this until user does not exist.
-        do {
+    If ($Null -ne $LogHistory)
+    {
+        Write-Log -Type Conf -Evt "Logs to keep:..........$LogHistory days."
+    }
+
+    If ($MailTo)
+    {
+        Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
+    }
+
+    If ($MailFrom)
+    {
+        Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
+    }
+
+    If ($MailSubject)
+    {
+        Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
+    }
+
+    If ($SmtpServer)
+    {
+        Write-Log -Type Conf -Evt "SMTP server is:........$SmtpServer."
+    }
+
+    If ($SmtpPort)
+    {
+        Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
+    }
+
+    If ($SmtpUser)
+    {
+        Write-Log -Type Conf -Evt "SMTP user is:..........$SmtpUser."
+    }
+
+    If ($SmtpPwd)
+    {
+        Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
+    }
+
+    If ($SmtpServer)
+    {
+        Write-Log -Type Conf -Evt "-UseSSL switch is:.....$UseSsl."
+    }
+    Write-Log -Type Conf -Evt "************************************************************"
+    Write-Log -Type Info -Evt "Process started"
+    ##
+    ## Display current config ends here.
+    ##
+
+    If (Test-Path -Path $UsersList)
+    {
+        ## Use this for password generation
+        Add-Type -AssemblyName System.Web
+
+        #Creating array for the sam account names for use later
+        $SamsList = @()
+
+        #Get the users names from the CSV
+        $UserCsv = Import-Csv -Path $UsersList
+
+        ForEach ($User in $UserCsv) {
+            ## Clean ' from first names
+            $FirstnameClean = $User.Firstname -replace "[']"
+
+            ## If firstname is long, shorten for samaccountname limit + rand number
+            $NameSafeLen = $FirstnameClean.substring(0, [System.Math]::Min(16, $FirstnameClean.Length))
+
             # Create a random number
             $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
+
+            $SamName = $NameSafeLen + $RandNum
+            $SamsList += $SamName
+            $UserFirstName = $User.Firstname
+            $UserLastName = $User.Lastname
+            $UserFullName = $UserFirstName + " " + $UserLastName
+
+            ## The UPN set as the new sam account name and the email domain.
+            $Upn = $SamName + "@$AdUpn"
+            $DisplayName = $UserFullName
+            $Pwrd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
+
+            ## If no home letter or path is configured, set to null
+            If ($HomeUnc)
+            {
+                $HomeUncFull = "$HomeUnc\$SamName"
+            }
+            else {
+                $HomeUncFull = $null
+                $HomeDrive = $null
+            }
+
+            ## Check for existance of existing users with same name
             $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
 
-            try {
-                New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
-                Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd [END]"
-            }
-            catch {
-                Write-Log -Type Err -Evt $_.Exception.Message
-            }
+            ## If a user does already exist with name sam name, regenerate the nummber and try to create again. Do this until user does not exist.
+            do {
+                # Create a random number
+                $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
+                $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
 
-        } until ($null -eq $UserExist)
-    }
-
-    ## If Groups are configured, find and add them
-    If ($null -ne $AdGrps)
-    {
-        ForEach ($Sams in $SamsList) {
-            ForEach ($AdGrp in $AdGrps) {
                 try {
-                    Add-ADGroupMember -Identity $AdGrp -Members $Sams
-                    Write-Log -Type Info -Evt "(Group) Adding user: $Sams to $AdGrp"
+                    New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
+                    Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd [END]"
                 }
                 catch {
                     Write-Log -Type Err -Evt $_.Exception.Message
                 }
+
+            } until ($null -eq $UserExist)
+        }
+
+        ## If Groups are configured, find and add them
+        If ($AdGrps)
+        {
+            ForEach ($Sams in $SamsList) {
+                ForEach ($AdGrp in $AdGrps) {
+                    try {
+                        Add-ADGroupMember -Identity $AdGrp -Members $Sams
+                        Write-Log -Type Info -Evt "(Group) Adding user: $Sams to $AdGrp"
+                    }
+                    catch {
+                        Write-Log -Type Err -Evt $_.Exception.Message
+                    }
+                }
             }
         }
+
+        ## Jobs done.
+        Write-Log -Type Info -Evt "Process finished"
     }
 
-    ## Jobs done.
-    Write-Log -Type Info -Evt "Process finished"
-}
-
-## If logging is configured then finish the log file.
-If ($LogPath)
-{
-    Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log finished"
-
-    ## This whole block is for e-mail, if it is configured.
-    If ($SmtpServer)
+    If ($Null -ne $LogHistory)
     {
-        ## Default e-mail subject if none is configured.
-        If ($Null -eq $MailSubject)
+        ## Cleanup logs.
+        Write-Log -Type Info -Evt "Deleting logs older than: $LogHistory days"
+        Get-ChildItem -Path "$LogPath\On-Prem-AD-User-Creator_*" -File | Where-Object CreationTime -lt (Get-Date).AddDays(-$LogHistory) | Remove-Item -Recurse
+    }
+
+    ## If logging is configured then finish the log file.
+    If ($LogPath)
+    {
+        ## This whole block is for e-mail, if it is configured.
+        If ($SmtpServer)
         {
-            $MailSubject = "New Users AD Log"
-        }
-
-        ## Default Smtp Port if none is configured.
-        If ($Null -eq $SmtpPort)
-        {
-            $SmtpPort = "25"
-        }
-
-        ## Setting the contents of the log to be the e-mail body.
-        $MailBody = Get-Content -Path $Log | Out-String
-
-        ## If an smtp password is configured, get the username and password together for authentication.
-        ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
-        If ($SmtpPwd)
-        {
-            $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
-            $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
-
-            ## If -ssl switch is used, send the email with SSL.
-            ## If it isn't then don't use SSL, but still authenticate with the credentials.
-            If ($UseSsl)
+            If (Test-Path -Path $Log)
             {
-                Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
+                ## Default e-mail subject if none is configured.
+                If ($Null -eq $MailSubject)
+                {
+                    $MailSubject = "On-Prem AD User Creator Utility Log"
+                }
+
+                ## Default Smtp Port if none is configured.
+                If ($Null -eq $SmtpPort)
+                {
+                    $SmtpPort = "25"
+                }
+
+                ## Setting the contents of the log to be the e-mail body.
+                $MailBody = Get-Content -Path $Log | Out-String
+
+                ## If an smtp password is configured, get the username and password together for authentication.
+                ## If an smtp password is not provided then send the e-mail without authentication and obviously no SSL.
+                If ($SmtpPwd)
+                {
+                    $SmtpPwdEncrypt = Get-Content $SmtpPwd | ConvertTo-SecureString
+                    $SmtpCreds = New-Object System.Management.Automation.PSCredential -ArgumentList ($SmtpUser, $SmtpPwdEncrypt)
+
+                    ## If -ssl switch is used, send the email with SSL.
+                    ## If it isn't then don't use SSL, but still authenticate with the credentials.
+                    If ($UseSsl)
+                    {
+                        Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -UseSsl -Credential $SmtpCreds
+                    }
+
+                    else {
+                        Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
+                    }
+                }
+
+                else {
+                    Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
+                }
             }
 
             else {
-                Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort -Credential $SmtpCreds
-            }
-        }
-
-        else {
-            Send-MailMessage -To $MailTo -From $MailFrom -Subject $MailSubject -Body $MailBody -SmtpServer $SmtpServer -Port $SmtpPort
+            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
         }
     }
     ## End of Email block

@@ -176,8 +176,14 @@ If ($NoBanner -eq $False)
 If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
 {
     Write-Host -Object "Usage:
-    From a terminal run: [path\]Office-Update.ps1 -Office [path\]Office365 -Config config-365-x64.xml -Days 30
-    This will update the office installation files in the specified directory, and delete update files older than 30 days
+    From a terminal run: [path\]On-Prem-AD-User-Creator.ps1 -csv [path\]user-list.csv
+    This will create new users from the names in the csv file.
+    The user objects will be created in the 'Computers' builtin OU.
+
+    To set the users UPN use: -upn [domain.name]
+    To set where the user objects are created: -ou [""'Full OU DN path'""]
+    To set the Home letter and Home path: -HomeLetter [drive letter] -HomePath [path]
+    To set which group(s) the new users should be a member of: -Groups [UserGroup1,UserGroup2]
 
     To output a log: -L [path]. To remove logs produced by the utility older than X days: -LogRotate [number].
     Run with no ASCII banner: -NoBanner
@@ -219,8 +225,6 @@ else {
         {
             Clear-Content -Path $Log
         }
-
-        Add-Content -Path $Log -Encoding ASCII -Value "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss") [INFO] Log started"
     }
 
     ## Function to get date in specific format.
@@ -273,10 +277,26 @@ else {
         }
     }
 
+    ## getting Windows Version info
+    $OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
+    $OSVMin = [environment]::OSVersion.Version | Select-Object -expand minor
+    $OSVBui = [environment]::OSVersion.Version | Select-Object -expand build
+    $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
+
+    # Set variables for options not set
+    If ($Null -eq $OrgUnit)
+    {
+        $OrgUnit = 'CN=Computers,DC=contoso,DC=com'
+    }
+
+    If ($Null -eq $AdUpn)
+    {
+        $AdUpn = Get-addomain | Select Forest -ExpandProperty Forest
+    }
+
     ##
     ## Display the current config and log if configured.
     ##
-
     Write-Log -Type Conf -Evt "************ Running with the following config *************."
     Write-Log -Type Conf -Evt "Utility Version:.......22.06.06"
     Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
@@ -294,7 +314,7 @@ else {
 
     If ($AdUpn)
     {
-        Write-Log -Type Conf -Evt "UPN to use:............$AdUpn."
+        Write-Log -Type Conf -Evt "User UPN:..............$AdUpn."
     }
 
     If ($HomeDrive)
@@ -309,7 +329,7 @@ else {
 
     If ($AdGrps)
     {
-        Write-Log -Type Conf -Evt "Groups for User:......."
+        Write-Log -Type Conf -Evt "Groups to add user to:"
 
         ForEach ($Grp in $AdGrps)
         {
@@ -372,86 +392,97 @@ else {
     ## Display current config ends here.
     ##
 
-    If (Test-Path -Path $UsersList)
+    If ($Null -ne $UsersList)
     {
-        ## Use this for password generation
-        Add-Type -AssemblyName System.Web
+        If (Test-Path -Path $UsersList)
+        {
+            ## Use this for password generation
+            Add-Type -AssemblyName System.Web
 
-        #Creating array for the sam account names for use later
-        $SamsList = @()
+            #Creating array for the sam account names for use later
+            $SamsList = @()
 
-        #Get the users names from the CSV
-        $UserCsv = Import-Csv -Path $UsersList
+            #Get the users names from the CSV
+            $UserCsv = Import-Csv -Path $UsersList
 
-        ForEach ($User in $UserCsv) {
-            ## Clean ' from first names
-            $FirstnameClean = $User.Firstname -replace "[']"
+            ForEach ($User in $UserCsv) {
+                ## Clean ' from first names
+                $FirstnameClean = $User.Firstname -replace "[']"
 
-            ## If firstname is long, shorten for samaccountname limit + rand number
-            $NameSafeLen = $FirstnameClean.substring(0, [System.Math]::Min(16, $FirstnameClean.Length))
+                ## If firstname is long, shorten for samaccountname limit + rand number
+                $NameSafeLen = $FirstnameClean.substring(0, [System.Math]::Min(16, $FirstnameClean.Length))
 
-            # Create a random number
-            $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
-
-            $SamName = $NameSafeLen + $RandNum
-            $SamsList += $SamName
-            $UserFirstName = $User.Firstname
-            $UserLastName = $User.Lastname
-            $UserFullName = $UserFirstName + " " + $UserLastName
-
-            ## The UPN set as the new sam account name and the email domain.
-            $Upn = $SamName + "@$AdUpn"
-            $DisplayName = $UserFullName
-            $Pwrd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
-
-            ## If no home letter or path is configured, set to null
-            If ($HomeUnc)
-            {
-                $HomeUncFull = "$HomeUnc\$SamName"
-            }
-            else {
-                $HomeUncFull = $null
-                $HomeDrive = $null
-            }
-
-            ## Check for existance of existing users with same name
-            $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
-
-            ## If a user does already exist with name sam name, regenerate the nummber and try to create again. Do this until user does not exist.
-            do {
                 # Create a random number
                 $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
+
+                $SamName = $NameSafeLen + $RandNum
+                $SamsList += $SamName
+                $UserFirstName = $User.Firstname
+                $UserLastName = $User.Lastname
+                $UserFullName = $UserFirstName + " " + $UserLastName
+
+                ## The UPN set as the new sam account name and the email domain.
+                $Upn = $SamName + "@$AdUpn"
+                $DisplayName = $UserFullName
+                $Pwrd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
+
+                ## If no home letter or path is configured, set to null
+                If ($HomeUnc)
+                {
+                    $HomeUncFull = "$HomeUnc\$SamName"
+                }
+                else {
+                    $HomeUncFull = $null
+                    $HomeDrive = $null
+                }
+
+                ## Check for existance of existing users with same name
                 $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
 
-                try {
-                    New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit –AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
-                    Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd [END]"
-                }
-                catch {
-                    Write-Log -Type Err -Evt $_.Exception.Message
-                }
+                ## If a user does already exist with name sam name, regenerate the nummber and try to create again. Do this until user does not exist.
+                do {
+                    # Create a random number
+                    $RandNum = (Get-Random -Minimum 0 -Maximum 9999).ToString('0000')
+                    $UserExist = Get-ADUser -filter "SamAccountName -eq '$SamName'"
 
-            } until ($null -eq $UserExist)
-        }
-
-        ## If Groups are configured, find and add them
-        If ($AdGrps)
-        {
-            ForEach ($Sams in $SamsList) {
-                ForEach ($AdGrp in $AdGrps) {
                     try {
-                        Add-ADGroupMember -Identity $AdGrp -Members $Sams
-                        Write-Log -Type Info -Evt "(Group) Adding user: $Sams to $AdGrp"
+                        New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit -AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
+                        Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd [END]"
                     }
                     catch {
                         Write-Log -Type Err -Evt $_.Exception.Message
                     }
+
+                } until ($null -eq $UserExist)
+            }
+
+            ## If Groups are configured, find and add them
+            If ($AdGrps)
+            {
+                ForEach ($Sams in $SamsList) {
+                    ForEach ($AdGrp in $AdGrps) {
+                        try {
+                            Add-ADGroupMember -Identity $AdGrp -Members $Sams
+                            Write-Log -Type Info -Evt "(Group) Adding user: $Sams to $AdGrp"
+                        }
+                        catch {
+                            Write-Log -Type Err -Evt $_.Exception.Message
+                        }
+                    }
                 }
             }
+
+            ## Jobs done.
+            Write-Log -Type Info -Evt "Process finished"
         }
 
-        ## Jobs done.
-        Write-Log -Type Info -Evt "Process finished"
+        else {
+            Write-Log -Type Err -Evt "The specified file was not found."
+        }
+    }
+
+    else {
+        Write-Log -Type Err -Evt "No csv file specified."
     }
 
     If ($Null -ne $LogHistory)
@@ -509,7 +540,8 @@ else {
             }
 
             else {
-            Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
+                Write-Host -ForegroundColor Red -BackgroundColor Black -Object "There's no log file to email."
+            }
         }
     }
     ## End of Email block

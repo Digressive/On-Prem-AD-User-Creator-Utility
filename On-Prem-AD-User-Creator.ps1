@@ -129,7 +129,7 @@ Param(
     [alias("HomeLetter")]
     $HomeDrive,
     [alias("HomePath")]
-    $HomeUnc,
+    $HomeUncUsr,
     [alias("Groups")]
     $AdGrps,
     [alias("L")]
@@ -280,11 +280,24 @@ else {
         }
     }
 
-    ## getting Windows Version info
-    $OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
-    $OSVMin = [environment]::OSVersion.Version | Select-Object -expand minor
-    $OSVBui = [environment]::OSVersion.Version | Select-Object -expand build
-    $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
+    ## Check for required options
+    If ($Null -eq $UsersList)
+    {
+        Write-Log -Type Err -Evt "You must specify a users list with -CSV"
+        Exit
+    }
+
+    If ($Null -eq $HomeDrive -And $HomeUncUsr)
+    {
+        Write-Log -Type Err -Evt "You need to set both -HomeLetter and -HomePath"
+        Exit
+    }
+
+    If ($Null -eq $HomeUncUsr -And $HomeDrive)
+    {
+        Write-Log -Type Err -Evt "You need to set both -HomeLetter and -HomePath"
+        Exit
+    }
 
     # Set variables for options not set
     If ($Null -eq $OrgUnit)
@@ -296,6 +309,17 @@ else {
     {
         $AdUpn = Get-addomain | Select Forest -ExpandProperty Forest
     }
+
+    If ($HomeUncUsr)
+    {
+        $HomeUnc = $HomeUncUsr.trimend('\')
+    }
+
+    ## getting Windows Version info
+    $OSVMaj = [environment]::OSVersion.Version | Select-Object -expand major
+    $OSVMin = [environment]::OSVersion.Version | Select-Object -expand minor
+    $OSVBui = [environment]::OSVersion.Version | Select-Object -expand build
+    $OSV = "$OSVMaj" + "." + "$OSVMin" + "." + "$OSVBui"
 
     ##
     ## Display the current config and log if configured.
@@ -325,9 +349,9 @@ else {
         Write-Log -Type Conf -Evt "Home Letter:...........$HomeDrive."
     }
 
-    If ($HomeUnc)
+    If ($HomeUncUsr)
     {
-        Write-Log -Type Conf -Evt "Home UNC Path:.........$HomeUnc."
+        Write-Log -Type Conf -Evt "Home UNC Path:.........$HomeUncUsr."
     }
 
     If ($AdGrps)
@@ -430,10 +454,11 @@ else {
                 $Pwrd = ([System.Web.Security.Membership]::GeneratePassword(8,0))
 
                 ## If no home letter or path is configured, set to null
-                If ($HomeUnc)
+                If ($HomeUncUsr)
                 {
                     $HomeUncFull = "$HomeUnc\$SamName"
                 }
+
                 else {
                     $HomeUncFull = $null
                     $HomeDrive = $null
@@ -452,6 +477,7 @@ else {
                         New-ADUser -Name "$SamName" -GivenName "$UserFirstName" -Surname "$UserLastName" -DisplayName "$DisplayName" -SamAccountName $SamName -UserPrincipalName $Upn -Path $OrgUnit -AccountPassword (ConvertTo-SecureString $Pwrd -AsPlainText -Force) -ChangePasswordAtLogon $true -Enabled $true -HomeDirectory $HomeUncFull -HomeDrive $HomeDrive
                         Write-Log -Type Info -Evt "(User) Creating new user $UserFirstName $UserLastName - Username: $SamName, Password: $Pwrd [END]"
                     }
+
                     catch {
                         Write-Log -Type Err -Evt $_.Exception.Message
                     }

@@ -34,87 +34,7 @@
 
     .DESCRIPTION
     This script will create AD users based on first and last names in a specified CSV file.
-    All other options are added via command line switches.
-
-    The command line switches provide configuration for:
-    Organisational Unit to create the new users.
-    User's UPN.
-    Home Drive location.
-    Home Drive letter.
-    Membership of Active Directory Groups.
-
-    To send a log file via e-mail using ssl and an SMTP password you must generate an encrypted password file.
-    The password file is unique to both the user and machine.
-    To create the password file run this command as the user and on the machine that will use the file:
-
-    $creds = Get-Credential
-    $creds.Password | ConvertFrom-SecureString | Set-Content C:\scripts\ps-script-pwd.txt
-
-    .PARAMETER CSV
-    The path and filename of the csv file containing the user information.
-    Please see the users-example.csv file for how to structure your own file.
-
-    .PARAMETER OU
-    The Organisational Unit to create the users in.
-
-    .PARAMETER UPN
-    The Universal Principal Name the users should be configured with.
-
-    .PARAMETER HomeLetter
-    The drive letter to use for the home drive path.
-
-    .PARAMETER HomePath
-    The path where the location of the home drive should reside.
-
-    .PARAMETER Groups
-    The name of the group(s) separated by a comma (,) that all the new users should be a member of.
-
-    .PARAMETER NoBanner
-    Use this option to hide the ASCII art title in the console.
-
-    .PARAMETER L
-    The path to output the log file to.
-    The file name will be On-Prem-AD-User-Creator_YYYY-MM-dd_HH-mm-ss.log
-    Do not add a trailing \ backslash.
-
-    .PARAMETER LogRotate
-    Instructs the utility to remove logs older than a specified number of days.
-
-    .PARAMETER Help
-    Show usage help in the command line.
-
-    .PARAMETER Subject
-    The subject line for the e-mail log.
-    Encapsulate with single or double quotes.
-    If no subject is specified, the default of "On-Prem AD User Creator Utility Log" will be used.
-
-    .PARAMETER SendTo
-    The e-mail address the log should be sent to.
-
-    .PARAMETER From
-    The e-mail address the log should be sent from.
-
-    .PARAMETER Smtp
-    The DNS name or IP address of the SMTP server.
-
-    .PARAMETER Port
-    The Port that should be used for the SMTP server.
-
-    .PARAMETER User
-    The user account to authenticate to the SMTP server.
-
-    .PARAMETER Pwd
-    The txt file containing the encrypted password for SMTP authentication.
-
-    .PARAMETER UseSsl
-    Configures the utility to connect to the SMTP server using SSL.
-
-    .EXAMPLE
-    On-Prem-AD-User-Creator.ps1 -csv C:\scripts\user-list.csv -upn contoso.com -ou 'OU=User_Accounts,DC=contoso,DC=com' -HomeLetter X -HomePath \\fs01\users$ -Groups UserGroup1,UserGroup2
-    -L C:\scripts\logs -Subject 'Server: New Users Log' -SendTo me@contoso.com -From New-Users-AD@contoso.com -Smtp smtp.outlook.com -User user@contoso.com -Pwd C:\scripts\ps-script-pwd.txt -UseSsl
-
-    This will create new users from the names in the csv file located in C:\scripts\user-list.csv and set their Home Drive letter to X and the path to \\fs01\users$\%username%.
-    The users will also be added to the groups UserGroup1 and UserGroup2. The log file will be output to C:\scripts\logs and sent via e-mail with a custom subject line.
+    Run with -help or no arguments for usage.
 #>
 
 ## Set up command line switches.
@@ -185,17 +105,23 @@ If ($PSBoundParameters.Values.Count -eq 0 -or $Help)
     To set the Home letter and Home path: -HomeLetter [drive letter] -HomePath [path]
     To set which group(s) the new users should be a member of: -Groups [UserGroup1,UserGroup2]
 
-    To output a log: -L [path]. To remove logs produced by the utility older than X days: -LogRotate [number].
+    To output a log: -L [path\].
+    To remove logs produced by the utility older than X days: -LogRotate [number].
     Run with no ASCII banner: -NoBanner
 
     To use the 'email log' function:
     Specify the subject line with -Subject ""'[subject line]'"" If you leave this blank a default subject will be used
     Make sure to encapsulate it with double & single quotes as per the example for Powershell to read it correctly.
+
     Specify the 'to' address with -SendTo [example@contoso.com]
+    For multiple address, separate with a comma.
+
     Specify the 'from' address with -From [example@contoso.com]
     Specify the SMTP server with -Smtp [smtp server name]
+
     Specify the port to use with the SMTP server with -Port [port number].
     If none is specified then the default of 25 will be used.
+
     Specify the user to access SMTP with -User [example@contoso.com]
     Specify the password file to use with -Pwd [path\]ps-script-pwd.txt.
     Use SSL for SMTP server connection with -UseSsl.

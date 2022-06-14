@@ -233,7 +233,7 @@ else {
 
     If ($Null -eq $AdUpn)
     {
-        $AdUpn = Get-addomain | Select Forest -ExpandProperty Forest
+        $AdUpn = Get-addomain | Select-Object Forest -ExpandProperty Forest
     }
 
     If ($HomeUncUsr)

@@ -47,7 +47,7 @@ Here’s a list of all the command line switches and example configurations.
 | Command Line Switch | Description | Example |
 | ------------------- | ----------- | ------- |
 | -CSV | The path of the csv file containing the user info. Please see the users-example.csv file for how to structure your own file. | [path\]user-list.csv |
-| -OU | The Organisational Unit to create the users in. If none is configured the default Computers OU will be used. | 'OU=User_Accounts,DC=contoso,DC=com' |
+| -OU | The Organizational Unit to create the users in. If none is configured the default Computers OU will be used. | 'OU=User_Accounts,DC=contoso,DC=com' |
 | -UPN | The Universal Principal Name the users should be configured with. If none is configured the forest name will be used. | [contoso.com] |
 | -HomeLetter | The drive letter to use for the home drive path. | [drive letter] |
 | -HomePath | The path where the location of the home drive should reside. | [path\] |

@@ -1,6 +1,6 @@
 ﻿<#PSScriptInfo
 
-.VERSION 22.06.06
+.VERSION 23.04.28
 
 .GUID eaaca86c-2a1f-4caf-b2f9-05868186d162
 
@@ -88,7 +88,7 @@ If ($NoBanner -eq $False)
         / /_/ (__  )  __/ /     / /___/ /  /  __/ /_/ / /_/ /_/ / /     / /_/ / /_/ / / / /_/ /_/ /     
         \____/____/\___/_/      \____/_/   \___/\__,_/\__/\____/_/      \____/\__/_/_/_/\__/\__, /      
                                                                                            /____/       
-            Version 22.06.06                                                                            
+            Version 23.04.28                                                                            
           See -help for usage               Donate: https://www.paypal.me/digressive                    
 "
 }
@@ -206,6 +206,26 @@ else {
         }
     }
 
+    ## Function for Update Check
+    Function UpdateCheck()
+    {
+        $ScriptVersion = "23.04.28"
+        $RawSource = "https://raw.githubusercontent.com/Digressive/On-Prem-AD-User-Creator-Utility/master/On-Prem-AD-User-Creator.ps1"
+
+        try {
+            $SourceCheck = Invoke-RestMethod -uri "$RawSource"
+            $VerCheck = $SourceCheck -split '\n' | Select-String -Pattern ".VERSION $ScriptVersion" -SimpleMatch -CaseSensitive -Quiet
+
+            If ($VerCheck -ne $True)
+            {
+                Write-Log -Type Conf -Evt "*** There is an update available. ***"
+            }
+        }
+
+        catch {
+        }
+    }
+
     ## Check for required options
     If ($Null -eq $UsersList)
     {
@@ -256,34 +276,34 @@ else {
     ##
     ## Display the current config and log if configured.
     ##
-    Write-Log -Type Conf -Evt "************ Running with the following config *************."
-    Write-Log -Type Conf -Evt "Utility Version:.......22.06.06"
-    Write-Log -Type Conf -Evt "Hostname:..............$Env:ComputerName."
-    Write-Log -Type Conf -Evt "Windows Version:.......$OSV."
+    Write-Log -Type Conf -Evt "--- Running with the following config ---"
+    Write-Log -Type Conf -Evt "Utility Version: 23.04.28"
+    Write-Log -Type Conf -Evt "Hostname: $Env:ComputerName."
+    Write-Log -Type Conf -Evt "Windows Version: $OSV."
 
     If ($UsersList)
     {
-        Write-Log -Type Conf -Evt "CSV file:..............$UsersList."
+        Write-Log -Type Conf -Evt "CSV file: $UsersList."
     }
 
     If ($OrgUnit)
     {
-        Write-Log -Type Conf -Evt "OU for users:..........$OrgUnit."
+        Write-Log -Type Conf -Evt "OU for users: $OrgUnit."
     }
 
     If ($AdUpn)
     {
-        Write-Log -Type Conf -Evt "User UPN:..............$AdUpn."
+        Write-Log -Type Conf -Evt "User UPN: $AdUpn."
     }
 
     If ($HomeDrive)
     {
-        Write-Log -Type Conf -Evt "Home Letter:...........$HomeDrive."
+        Write-Log -Type Conf -Evt "Home Letter: $HomeDrive."
     }
 
     If ($HomeUncUsr)
     {
-        Write-Log -Type Conf -Evt "Home UNC Path:.........$HomeUncUsr."
+        Write-Log -Type Conf -Evt "Home UNC Path: $HomeUncUsr."
     }
 
     If ($AdGrps)
@@ -292,60 +312,46 @@ else {
 
         ForEach ($Grp in $AdGrps)
         {
-            Write-Log -Type Conf -Evt ".......................$Grp"
+            Write-Log -Type Conf -Evt " $Grp"
         }
     }
 
     If ($LogPathUsr)
     {
-        Write-Log -Type Conf -Evt "Logs directory:........$LogPath."
+        Write-Log -Type Conf -Evt "Logs directory: $LogPath."
     }
 
     If ($Null -ne $LogHistory)
     {
-        Write-Log -Type Conf -Evt "Logs to keep:..........$LogHistory days."
+        Write-Log -Type Conf -Evt "Logs to keep: $LogHistory days."
     }
 
     If ($MailTo)
     {
-        Write-Log -Type Conf -Evt "E-mail log to:.........$MailTo."
+        Write-Log -Type Conf -Evt "E-mail log to: $MailTo."
     }
 
     If ($MailFrom)
     {
-        Write-Log -Type Conf -Evt "E-mail log from:.......$MailFrom."
+        Write-Log -Type Conf -Evt "E-mail log from: $MailFrom."
     }
 
     If ($MailSubject)
     {
-        Write-Log -Type Conf -Evt "E-mail subject:........$MailSubject."
+        Write-Log -Type Conf -Evt "E-mail subject: $MailSubject."
     }
 
     If ($SmtpServer)
     {
-        Write-Log -Type Conf -Evt "SMTP server is:........$SmtpServer."
-    }
-
-    If ($SmtpPort)
-    {
-        Write-Log -Type Conf -Evt "SMTP Port:...............$SmtpPort."
+        Write-Log -Type Conf -Evt "SMTP server: Configured."
     }
 
     If ($SmtpUser)
     {
-        Write-Log -Type Conf -Evt "SMTP user is:..........$SmtpUser."
+        Write-Log -Type Conf -Evt "SMTP auth: Configured."
     }
 
-    If ($SmtpPwd)
-    {
-        Write-Log -Type Conf -Evt "SMTP pwd file:.........$SmtpPwd."
-    }
-
-    If ($SmtpServer)
-    {
-        Write-Log -Type Conf -Evt "-UseSSL switch is:.....$UseSsl."
-    }
-    Write-Log -Type Conf -Evt "************************************************************"
+    Write-Log -Type Conf -Evt "---"
     Write-Log -Type Info -Evt "Process started"
     ##
     ## Display current config ends here.

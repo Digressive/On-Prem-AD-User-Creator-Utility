@@ -1,6 +1,6 @@
 # On-Prem AD User Creator Utility
 
-Configurable Script For Creating Active Directory User Accounts
+## Configurable Script For Creating Active Directory User Accounts
 
 For full change log and more information, [visit my site.](https://gal.vin/utils/on-prem-ad-user-creator-utility/)
 
@@ -13,8 +13,9 @@ Please consider supporting my work:
 * Sign up using [Patreon](https://www.patreon.com/mikegalvin).
 * Support with a one-time donation using [PayPal](https://www.paypal.me/digressive).
 
-Please report any problems via the ‘issues’ tab on GitHub.
+Please report any problems via the 'issues' tab on GitHub.
 
+Thanks
 -Mike
 
 ## Features and Requirements
@@ -25,7 +26,7 @@ Please report any problems via the ‘issues’ tab on GitHub.
 * Randomly generated passwords for each user.
 * User names are generated from first name & a 3 digit random number.
 * The utility requires at least PowerShell 5.0.
-* This utility has been tested on Windows 11, Windows 10, Windows Server 2022, Windows Server 2019, Windows Server 2016.
+* Tested on Windows 11, Windows 10, Windows Server 2022, Windows Server 2019, Windows Server 2016.
 
 ## Generating A Password File For SMTP Authentication
 
@@ -72,3 +73,65 @@ Here’s a list of all the command line switches and example configurations.
 ```
 
 This will create new users from the names in the csv file. The user objects will be created in the 'Computers' builtin OU.
+
+## Change Log
+
+### 2023-04-28: Version 23.04.28
+
+* Removed specific SMTP config info from config report.
+* Added script update checker - shows if an update is available in the log and console. If the internet is not reachable it silently errors out.
+
+### 2022-06-14: Version 22.06.06
+
+* Added new feature: log can now be emailed to multiple addresses.
+* Added checks and balances to help with configuration as I'm very aware that the initial configuration can be troublesome. Running the utility manually is a lot more friendly and step-by-step now.
+* Added -Help to give usage instructions in the terminal. Running the script with no options will also trigger the -help switch.
+* Cleaned user entered paths so that trailing slashes no longer break things or have otherwise unintended results.
+* Added -LogRotate [days] to removed old logs created by the utility.
+* Streamlined config report so non configured options are not shown.
+* Added donation link to the ASCII banner.
+* Cleaned up code, removed unneeded log noise.
+
+### 2021-12-08: Version 21.12.08
+
+* Configured logs path now is created, if it does not exist.
+* Added OS version info.
+* Added Utility version info.
+* Added Hostname info.
+
+### 2021-09-20: Version 21.09.20
+
+* Added code to make sure sam account name will never be more than 19 characters, due to the default sam account name length being 20 characters.
+
+### 2021-09-15: Version 21.09.15
+
+* Completely rewritten to streamline the user creation process.
+* User passwords are now randomly generated.
+* Added option to add users to multiple groups.
+* Utility will find groups based on the AD name. No more having to specify the whole DN.
+* Added ASCII banner art when run in the console.
+* Added option to disable the ASCII banner art.
+* Added an option to specify the Port for SMTP communication.
+
+### 2019-09-04 v1.6
+
+* Added custom subject line for e-mail.
+
+### 2017-10-16 v1.5
+
+* Changed SMTP authentication to require an encrypted password file.
+* Added instructions on how to generate an encrypted password file.
+
+### 2017-10-07 v1.4
+
+* Added necessary information to add the script to the PowerShell Gallery.
+
+### 2017-09-13 v1.3
+
+* Added check for existence of user before attempting to create user.
+* Improved logging to handle the above change.
+
+### 2017-07-22 v1.2
+
+* Improved code commenting for documentation purposes.
+* Added authentication and SSL options for e-mail notification.

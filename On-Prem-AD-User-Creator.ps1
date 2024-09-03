@@ -12,7 +12,7 @@
 
 .TAGS Active Directory User Creation CSV Import
 
-.LICENSEURI
+.LICENSEURI https://github.com/Digressive/On-Prem-AD-User-Creator-Utility?tab=MIT-1-ov-file
 
 .PROJECTURI https://gal.vin/utils/on-prem-ad-user-creator-utility/
 

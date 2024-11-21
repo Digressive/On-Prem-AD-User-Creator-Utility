@@ -10,6 +10,7 @@ On-Prem AD User Creator Utility is available from:
 
 Please consider supporting my work:
 
+* Support with [Github Sponsors](https://github.com/sponsors/Digressive).
 * Support with a one-time donation using [PayPal](https://www.paypal.me/digressive).
 
 Please report any problems via the 'issues' tab on GitHub.
